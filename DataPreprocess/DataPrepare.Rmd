@@ -1,0 +1,132 @@
+---
+title: "Project_DataPrepare"
+output: pdf_document
+date: "2023-03-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+About the datasets:
+The datasets were originally from Guanghua School of Management at Peking University and are accessible in CSV format through the UCI Machine Learning Repository. The data comprises hourly readings of air pollutants at 12 nationally-controlled air-quality monitoring sites between March 1st, 2013 and February 28th, 2017. Each CSV file contains 18 attributes that depict the varying concentrations of different pollutants per hour
+
+```{r}
+rm(list = ls())
+library(dplyr)
+library(DT)
+library(leaflet)
+library(Hmisc)
+library(corrplot)
+library(PerformanceAnalytics)
+```
+
+Combine all .csv files
+```{r}
+df1 <- read.csv("PRSA_Data_Aotizhongxin_20130301-20170228.csv")
+df2 <- read.csv("PRSA_Data_Changping_20130301-20170228.csv")
+df3 <- read.csv("PRSA_Data_Dingling_20130301-20170228.csv")
+df4 <- read.csv("PRSA_Data_Dongsi_20130301-20170228.csv")
+df5 <- read.csv("PRSA_Data_Guanyuan_20130301-20170228.csv")
+df6 <- read.csv("PRSA_Data_Gucheng_20130301-20170228.csv")
+df7 <- read.csv("PRSA_Data_Huairou_20130301-20170228.csv")
+df8 <- read.csv("PRSA_Data_Nongzhanguan_20130301-20170228.csv")
+df9 <- read.csv("PRSA_Data_Shunyi_20130301-20170228.csv")
+df10 <- read.csv("PRSA_Data_Tiantan_20130301-20170228.csv")
+df11 <- read.csv("PRSA_Data_Wanliu_20130301-20170228.csv")
+df12 <- read.csv("PRSA_Data_Wanshouxigong_20130301-20170228.csv")
+
+# combine all .csv file
+df <- bind_rows(df1, df2, df3, df4, df5, df6, df7, df8, df9, df10, df11, df12)
+```
+
+1. Exploratory Analysis of Data
+
+```{r}
+head(df)
+```
+
+a. Check dimension
+```{r}
+dim(df)
+```
+
+b. Check column name and datatypes of each column
+```{r}
+# Column name
+print(names(df))
+print("--------------------------------------------------------------------------------")
+# Datatype
+print(sapply(df, class))
+```
+c. Summary of df
+```{r}
+summary(df)
+```
+
+d. Check NA in each column
+```{r}
+print(sapply(df, function(x) sum(is.na(x))))
+```
+
+Data pre-processing
+a. Remove unnecessary column "No" because column "No" represent the number of row
+```{r}
+df_new <- df[, !names(df) %in% "No"]
+```
+
+b. Check the percentage of missing values in each column
+```{r}
+print(sapply(df, function(x) mean(is.na(x))) * 100)
+```
+If we check the distribution of the columns which have NA, we can observe that they all have similar median and mean value but not the same. Most of these variables have extreme maximum value. Since the median is a more robust measure of central tendency than the mean, it is less affected by extreme values or outliers. Therefore, We will use median to fill the NA.
+
+c. Replace missing values with median in numeric variables
+```{r}
+
+df_imputed <- df_new %>% 
+  mutate_all(~ifelse(is.na(.), median(., na.rm = TRUE), .))
+
+```
+
+d. Remove rows with missing value in categorical variable (wd) since the percentage of missing values in a categorical column is very low (0.43%)
+```{r}
+df <- na.omit(df_imputed)
+```
+
+```{r}
+print(sapply(df, function(x) sum(is.na(x))))
+```
+
+Final dataset after data cleaning
+```{r}
+head(df)
+write.csv(df, file = "./df.csv", row.names = FALSE)
+```
+
+2. Prepare data for visulization
+a. Air quality map by air pollutants.
+```{r}
+geo <- read.csv("geo.csv")
+df_geo <- left_join(df, geo, by = "station")
+write.csv(df_geo, file = "./df_geo.csv", row.names = FALSE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

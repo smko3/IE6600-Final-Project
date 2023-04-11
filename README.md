@@ -8,5 +8,3 @@ The dataset is the measurement and analysis of air quality in Beijing, China, ov
 ### Reference: https://archive.ics.uci.edu/ml/datasets/Beijing+Multi-Site+Air-Quality+Data# 
 The datasets were originally from Guanghua School of Management at Peking University and are accessible in CSV format through the UCI Machine Learning Repository. The data comprises hourly readings of air pollutants at 12 nationally-controlled air-quality monitoring sites between March 1st, 2013 and February 28th, 2017. Each CSV file contains 18 attributes that depict the varying concentrations of different pollutants per hour.
 
-## Shiny App
-https://caroll-carolll.shinyapps.io/AirQualityBeijing/

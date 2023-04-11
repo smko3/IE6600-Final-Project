@@ -1,0 +1,313 @@
+---
+title: "IE6600 - Modeling_Fung"
+author: "Yuqiao Feng"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = T, eval=T) 
+# Pre-load packages ----
+options(scipen = 999)
+#install.packages("ggtrendline")
+#install.packages("caret")
+#install.packages("rlang")
+#install.packages("glmnet")
+library(tidyverse) 
+library(ggplot2)
+library(dplyr)
+library(magrittr)
+library(ggtrendline)
+library(caret)
+library(rlang)
+
+
+```
+
+
+# Inputing Bejing Air Quality Dataset
+
+
+## Data pre-processing
+```{r}
+# Input data by using read_csv and make easy data formating----
+mydata<-read.csv("C:\\Users\\kings\\Downloads\\df.csv")
+#mydata
+#summarize the data  
+summary(mydata)
+#convert orginial data to standard date format
+mydata$Date<-as.Date(with(mydata,paste(year,month,day,sep="-")),"%Y-%m-%d")
+#mydata
+
+
+
+```
+
+
+
+
+## Calculating Mean of PM 2.5 and PM10
+```{r}
+#mean of PM2.5 by year
+df1 <- mydata[, c("PM2.5", "year")][order(mydata$year),] %>% 
+  group_by(year) %>% 
+  summarise(mean = mean(PM2.5)) %>% 
+  arrange(desc(year))
+df1
+#mean of PM10 by year
+df2 <- mydata[, c("PM10", "year")][order(mydata$year),] %>% 
+  group_by(year) %>% 
+  summarise(mean = mean(PM10)) %>% 
+  arrange(desc(year))
+
+df2
+
+```
+
+
+## Plot graph by distribution of PM 2.5 and PM10
+```{r}
+#distribution of PM1O
+ggplot(mydata, aes(PM10)) +
+  geom_histogram(bins = 15, aes(y = ..density..), fill = "purple") + 
+  geom_density(alpha = 0.2, fill = "purple") +
+  ggtitle("Distribution of PM10")
+theme(axis.title = element_text(), axis.title.x = element_text()) 
+#distribution of PM2.5
+ggplot(mydata, aes(PM2.5)) +
+  geom_histogram(bins = 15, aes(y = ..density..), fill = "purple") + 
+  geom_density(alpha = 0.2, fill = "purple") +
+  ggtitle("Distribution of PM2.5")
+theme(axis.title = element_text(), axis.title.x = element_text())
+
+```
+
+## Plot graph by relationship of PM 2.5 and other variables
+```{r}
+#plot the relationship between Temperature and PM2.5
+ggplot(mydata, aes(x = TEMP, y = PM2.5)) +
+  geom_point(alpha = 0.1, color = "blue") +
+  geom_smooth(color = "red") +
+  ggtitle("Relationship Between Temperature and PM2.5")
+
+#plot the relationship between SO2 and PM2.5
+ggplot(mydata, aes(x = SO2, y = PM2.5)) +
+  geom_point(alpha = 0.1, color = "blue") +
+  geom_smooth(color = "red") +
+  ggtitle("Relationship Between SO2 and PM2.5")
+
+#plot the relationship between DewPoint and PM2.5
+ggplot(mydata, aes(x = DEWP, y = PM2.5)) +
+  geom_point(alpha = 0.1, color = "blue") +
+  geom_smooth(color = "red") +
+  ggtitle("Relationship Between DewPoint and PM2.5")
+
+#plot the relationship between NO2 and PM10
+ggplot(mydata, aes(x = NO2, y = PM10)) +
+  geom_point(alpha = 0.1, color = "blue") +
+  geom_smooth(color = "red") +
+  ggtitle("Relationship Between NO2 and PM10")
+
+#plot the relationship between CO and PM2.5 according to station
+ggplot(mydata, aes(x = CO, y = PM2.5, color = station)) +
+  geom_point(size = 3, shape = 21) +
+  scale_color_manual(values = c("#ff9900", "#660099","#BD6263","#8EA325","#A9D179","#84CAC0","#F5AE6B","#BCB8D3","#4387B5","#E64B35B2", "#4DBBD5B2" ,"#00A087B2")) +
+  ggtitle("CO and PM2.5 According to Station")
+
+
+#plot violin graph to visualize PM 2.5
+ggplot(mydata, aes(x = year, y = PM2.5)) +
+  geom_violin()
+
+
+```
+
+## Linear Regression:set wind direction as a factor
+```{r}
+#Regression of wind direction
+mydata$wd <- as.factor(mydata$wd)
+
+
+m1 <- lm(mydata$PM2.5 ~mydata$year+ mydata$PM10 + mydata$SO2 + mydata$CO + mydata$O3 +mydata$NO2+mydata$wd)
+summary(m1)
+
+#m1:#PM2.5 = 323.04 + -0.16(year) + 0.56(PM10) + 0.02(SO2)+0.02(co)+0.05(O3)+0.11(NO2)-1.54(wdENE)-3.01(wdN)-1.41(wdNE)-2.28(wdNNE)-4.75(wdNNW)-6.67(wdNW)-1.45(wdS)
+#-0.28(WdSE)-0.79(WdSSE)-3.01(wdSSW)-5.29(wdSW)-6.77(wdW)-7.88(wdWNW)-5.34(wdWSW)
+
+m2 <- lm(mydata$PM10 ~ mydata$year+ mydata$PM2.5 + mydata$SO2 + mydata$CO + mydata$O3 +mydata$NO2+mydata$wd)
+summary(m2)
+
+#m2:#PM10 = 375.25 + -0.186(year) + 0.889(PM2.5) + 0.096(SO2)-0.001(co)+0.132(O3)+0.463(NO2)-2.104(wdENE)-1.246(wdN)-1.893(wdNE)-2.492(wdNNE)-4.75s(wdNNW)-6.67(wdNW)-1.45(wdS)
+#-0.28(WdSE)-0.79(WdSSE)-3.01(wdSSW)-5.29(wdSW)-6.77(wdW)-7.88(wdWNW)-5.34(wdWSW)
+
+
+
+
+```
+
+
+
+
+
+
+
+## Linear Regression:set station as a factor
+```{r}
+
+#Linear regression of station 
+#In order to fit this regression model and tell R that the variable “program” is a categorical variable, we must use as.factor() to convert it to a factor and then fit the model:
+
+mydata$station <- as.factor(mydata$station)
+
+#fit linear regression model
+fit <- lm(PM2.5 ~ PM10 + SO2+NO2+CO+O3+station, data = mydata)
+summary(fit)
+
+#From the values in the Estimate column, we can write the fitted regression model:
+
+#PM2.5 = -19.36 + .55(PM10) + 0.02(SO2) + 0.17(NO2)+0.02(co)+0.06(O3)+1.75(Changping)+9.89(Dingling)+3.19(Dongsi)+0.912(Guanyuan)-4.55(Gucheng)+6.43(HUairou)+1.35(Nongzhanguan)-1.04(Wanliu)-0.54(Wanshouxigong)
+
+
+```
+
+
+
+
+
+## Ridge Model Regression
+```{r}
+
+#Ridge regression is a method we can use to fit a regression model when multicollinearity is present in the data.
+#To perform ridge regression, we’ll use functions from the glmnet package. This package requires the response variable to be a vector and the set of predictor variables to be of the class data.matrix.
+
+library(glmnet)
+y <- mydata$PM2.5
+x <- data.matrix(mydata[, c('PM10','SO2', 'NO2', 'CO', 'O3')])
+#fit ridge model
+
+#we’ll use the glmnet() function to fit the ridge regression model and specify alpha=0.
+
+# ridge regression requires the data to be standardized such that each predictor variable has a mean of 0 and a standard deviation of 1.
+
+
+model <- glmnet(x, y, alpha = 0)
+
+#view the summary of model
+
+
+summary(model)
+
+
+#Next, we’ll identify the lambda value that produces the lowest test mean squared error (MSE) by using k-fold cross-validation.
+
+#perform k-fold cross-validation to find optimal lambda value
+
+
+cv_model <- cv.glmnet(x, y, alpha = 0)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+#The lambda value that minimizes the test MSE turns out to be 7.0362.
+
+
+best_model <- glmnet(x, y, alpha = 0, lambda = best_lambda)
+coef(best_model)
+#fitted model:PM2.5=-13.725+0.49PM10+0.09so2+0.22NO2+0.02CO+0.067O3
+
+
+
+
+
+#Lastly, we can analyze the final model produced by the optimal lambda value.
+
+#We can use the following code to obtain the coefficient estimates for this model:
+
+y_predicted <- predict(model, s = best_lambda, newx = x)
+
+#find SST and SSE
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+#find R-Squared
+rsq <- 1 - sse/sst
+
+rsq
+
+
+#The R-squared turns out to be 0.8218. That is, the best model was able to explain 82.1% of the variation in the response values of the training data.
+
+
+
+```
+
+
+
+
+
+## Lasso regression
+```{r}
+
+#Lasso regression
+
+#To perform lasso regression, we’ll use functions from the glmnet package. This package requires the response variable to be a vector and the set of predictor variables to be of the class data.matrix
+#define response variable
+y <- mydata$PM2.5
+
+#define matrix of predictor variables
+x <- data.matrix(mydata[, c('PM10','SO2', 'NO2', 'CO', 'O3')])
+
+
+library(glmnet)
+
+#perform k-fold cross-validation to find optimal lambda value
+cv_model <- cv.glmnet(x, y, alpha = 1)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+
+#The lambda value that minimizes the test MSE turns out to be 0.21.
+
+
+#Lastly, we can analyze the final model produced by the optimal lambda value.
+
+#We can use the following code to obtain the coefficient estimates for this model:
+#find coefficients of best model
+best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(best_model)
+#                      s0
+#(Intercept) -13.89451463
+#PM10          0.56332051
+#SO2           0.02401005
+#NO2           0.11445905
+#CO            0.02099390
+#O3            0.04890430
+
+#model PM2.5=-13.894+0.56PM10+0.02SO2+0.11NO2+0.02CO+0.04O3
+
+#use fitted best model to make predictions
+y_predicted <- predict(best_model, s = best_lambda, newx = x)
+#y_predicted
+#find SST and SSE
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+#find R-Squared
+rsq <- 1 - sse/sst
+rsq
+
+#The R-squared turns out to be 0.825. That is, the best model was able to explain 82.5% of the variation in the response values of the training data.
+
+
+
+
+```
